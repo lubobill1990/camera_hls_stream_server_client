@@ -3,15 +3,19 @@
 **Input**: Design documents from `/specs/001-hls-camera-streaming/`
 **Prerequisites**: 
 - ✅ spec.md (7 user stories, 15 functional requirements)
-- ✅ plan.md (Next.js + FFmpeg architecture)
+- ✅ plan.md (Hono backend + Vite/React frontend architecture)
 - ✅ research.md (6 research topics completed)
 - ✅ data-model.md (4 core entities defined)
 - ✅ contracts/api.md (8 REST endpoints)
 - ✅ quickstart.md (working code template)
 
-**Total Tasks**: 78 tasks across 6 phases
-**Estimated Duration**: 80-120 development hours (6-8 days for 1-2 developers)
+**Total Tasks**: 88 tasks across 6 phases
+**Estimated Duration**: 70-100 development hours (5-7 days for 1-2 developers)
 **Branch**: `001-hls-camera-streaming`
+
+**Architecture**: 
+- **Backend**: Hono + TypeScript (server/) - REST API + FFmpeg camera capture
+- **Frontend**: Vite + React + Tailwind CSS (web/) - SPA for stream management
 
 ---
 
@@ -31,25 +35,38 @@
 
 ## Phase 1: Setup (Project Initialization)
 
-**Purpose**: Initialize Next.js project, establish directory structure, configure tools
+**Purpose**: Initialize both backend (Hono) and frontend (Vite/React) projects
 
 **Duration**: 1-2 hours
-**Deliverable**: Working Next.js dev environment with TypeScript
+**Deliverable**: Working dev environments for both server and web projects
 
-### Setup Tasks
+### Backend Setup (server/)
 
-- [ ] T001 Create Next.js project with TypeScript, Tailwind CSS, and ESLint config
-- [ ] T002 [P] Create directory structure per plan.md: `app/api`, `app/components`, `app/lib`, `public/hls`, `tests`
-- [ ] T003 [P] Install dependencies: ffmpeg, hls.js, uuid, jest, @testing-library/react
-- [ ] T004 [P] Configure TypeScript strict mode and path aliases
-- [ ] T005 Configure jest.config.js with Next.js support and test paths
-- [ ] T006 Create `.env.example` with default configuration (ffmpeg path, hls segment settings)
-- [ ] T007 Create `.gitignore` to exclude `public/hls/*` segment files and node_modules
-- [ ] T008 [P] Setup ESLint and Prettier configuration for code consistency
-- [ ] T009 Create README.md with setup and development instructions
-- [ ] T010 [P] Configure Next.js build and dev scripts in `package.json`
+- [ ] T001 Create `server/` directory and initialize with `npm init -y`
+- [ ] T002 [P] Install Hono dependencies: `hono @hono/node-server`
+- [ ] T003 [P] Install dev dependencies: `typescript tsx vitest @types/node`
+- [ ] T004 [P] Install utility dependencies: `uuid` and `@types/uuid`
+- [ ] T005 Configure `server/tsconfig.json` with strict mode and ESM
+- [ ] T006 Create `server/src/index.ts` with basic Hono app skeleton
+- [ ] T007 [P] Create `server/.env.example` with FFMPEG_PATH, HLS_DIR, PORT settings
+- [ ] T008 [P] Add npm scripts in `server/package.json`: dev, build, start, test
 
-**Checkpoint**: Project builds and runs with `npm run dev` - **REQUIRED BEFORE PHASE 2**
+### Frontend Setup (web/)
+
+- [ ] T009 Create Vite React project: `npm create vite@latest web -- --template react-ts`
+- [ ] T010 [P] Install Tailwind CSS: `tailwindcss postcss autoprefixer`
+- [ ] T011 [P] Install dependencies: `hls.js @tanstack/react-query`
+- [ ] T012 Configure `web/tailwind.config.js` and `postcss.config.js`
+- [ ] T013 [P] Setup Tailwind in `web/src/styles/globals.css`
+- [ ] T014 [P] Configure Vite proxy in `web/vite.config.ts` for API calls to backend
+
+### Shared Setup
+
+- [ ] T015 Create root `README.md` with setup instructions for both projects
+- [ ] T016 [P] Create root `.gitignore` for node_modules, dist, public/hls/*
+- [ ] T017 [P] Create directory structure: `server/src/lib`, `server/src/routes`, `web/src/components`, `web/src/hooks`
+
+**Checkpoint**: Both `npm run dev` commands work (server on :3001, web on :5173) - **REQUIRED BEFORE PHASE 2**
 
 ---
 
@@ -62,342 +79,388 @@
 
 **⚠️ CRITICAL**: All tasks must complete before user story implementation
 
+### Type Definitions
+
+- [ ] T018 Create TypeScript interfaces in `server/src/lib/types/index.ts`
+  - CameraDevice, CameraCapabilities, CameraStatus enums
+  - Stream, StreamStatus, HLSSegment, HLSManifest types
+
 ### Camera Management Foundation
 
-- [ ] T011 Create TypeScript interfaces for Camera entities in `app/lib/types/index.ts`
-  - CameraDevice, CameraCapabilities, CameraStatus enums
-- [ ] T012 [P] Create `app/lib/camera/cameraManager.ts` with:
-  - `discoverCameras()`: Enumerate system cameras using FFmpeg
+- [ ] T019 [P] Create `server/src/lib/camera/cameraManager.ts` with:
+  - `discoverCameras()`: Enumerate system cameras using FFmpeg -list_devices
   - `getCameras()`: Return current camera list with status
   - `getCameraById(id)`: Get single camera details
-- [ ] T013 [P] Create `app/lib/camera/platformHelpers.ts` for OS-specific camera enumeration
+- [ ] T020 [P] Create `server/src/lib/camera/platformHelpers.ts` for OS-specific camera enumeration
   - Windows: dshow format detection
   - macOS: avfoundation format detection
   - Linux: v4l2 format detection
+- [ ] T021 [P] Implement camera reservation system in cameraManager
+  - `reserveCamera(cameraId)`: Check and mark camera in-use
+  - `releaseCamera(cameraId)`: Release camera for reuse
 
 ### FFmpeg Integration Foundation
 
-- [ ] T014 [P] Create TypeScript interfaces for Stream entities in `app/lib/types/index.ts`
-  - Stream, StreamStatus, HLSSegment, HLSManifest types
-- [ ] T015 Create `app/lib/ffmpeg/ffmpegWorker.ts` with:
+- [ ] T022 Create `server/src/lib/ffmpeg/ffmpegWorker.ts` with:
   - `spawnFFmpeg(cameraId, options)`: Spawn FFmpeg child process
-  - `killFFmpeg(process, timeout)`: Gracefully kill FFmpeg with timeout
-  - Redirect stderr to capture encoding progress
-- [ ] T016 [P] Create `app/lib/ffmpeg/transcodeConfig.ts` with:
+  - `killFFmpeg(process, timeout)`: Gracefully kill FFmpeg with 10s timeout
+  - Redirect stderr to capture encoding progress and errors
+- [ ] T023 [P] Create `server/src/lib/ffmpeg/transcodeConfig.ts` with:
   - `buildFFmpegArgs()`: Generate FFmpeg command-line arguments
-  - Configure bitrate, resolution, segment duration, codec settings
+  - Configure: ultrafast preset, 2500 kbps, 720p, 2-sec segments
   - Support for platform-specific device input formats
-- [ ] T017 [P] Create error handling utilities in `app/lib/utils/logging.ts`
-  - Structured logging for FFmpeg events
-  - Error event handlers for process failures
 
 ### Stream Registry Foundation
 
-- [ ] T018 Create `app/lib/stream/streamRegistry.ts` (in-memory state management)
+- [ ] T024 Create `server/src/lib/stream/streamRegistry.ts` (in-memory state management)
   - Map<streamId, StreamState> store
-  - `registerStream(stream)`: Add new stream to registry
-  - `getStream(id)`: Retrieve stream metadata
-  - `updateStream(id, partial)`: Update stream status/properties
-  - `unregisterStream(id)`: Remove stream from registry
-  - `getAllStreams()`: List all active streams
-- [ ] T019 [P] Implement camera reservation system in `app/lib/camera/cameraManager.ts`
-  - `reserveCamera(cameraId)`: Check and mark camera in-use
-  - `releaseCamera(cameraId)`: Release camera for reuse
-  - Prevent duplicate camera usage across streams
+  - `registerStream(stream)`, `getStream(id)`, `updateStream(id, partial)`
+  - `unregisterStream(id)`, `getAllStreams()`
+- [ ] T025 [P] Create error handling utilities in `server/src/lib/utils/logging.ts`
+  - Structured logging for FFmpeg events
+  - Error event handlers for process failures
 
 ### HLS Utilities Foundation
 
-- [ ] T020 Create `app/lib/hls/hlsManager.ts` with:
-  - `createStreamDirectory(streamId)`: Create `/public/hls/<streamId>` directory
+- [ ] T026 Create `server/src/lib/hls/hlsManager.ts` with:
+  - `createStreamDirectory(streamId)`: Create `server/public/hls/<streamId>`
   - `cleanupStreamDirectory(streamId)`: Delete all stream files
   - `getAvailableSegments(streamId)`: List current segment files
   - `generateManifest(streamId)`: Build m3u8 content from segments
-- [ ] T021 [P] Create utility functions in `app/lib/utils/uuid.ts`
-  - `generateStreamId()`: Create unique stream identifiers
-  - UUID v4 generation
+- [ ] T027 [P] Create `server/src/lib/utils/uuid.ts`
+  - `generateStreamId()`: Create unique stream identifiers (UUID v4)
 
-### Initialization Tests (Unit Tests - OPTIONAL for MVP)
+### Unit Tests (OPTIONAL for MVP)
 
-- [ ] T022 [P] Write unit tests for camera manager in `tests/unit/camera.test.ts`
-  - Mock FFmpeg output parsing
-  - Test camera enumeration logic
-- [ ] T023 [P] Write unit tests for stream registry in `tests/unit/stream.test.ts`
-  - Test add/remove/update operations
-  - Verify isolation between streams
-- [ ] T024 [P] Write unit tests for HLS utilities in `tests/unit/hls.test.ts`
-  - Test manifest generation from segment files
-  - Test directory creation/cleanup
+- [ ] T028 [P] Write unit tests in `server/tests/unit/camera.test.ts`
+- [ ] T029 [P] Write unit tests in `server/tests/unit/stream.test.ts`
+- [ ] T030 [P] Write unit tests in `server/tests/unit/hls.test.ts`
 
-**Checkpoint**: Core services ready, camera enumeration works, stream registry operational - **USER STORY IMPLEMENTATION CAN BEGIN**
+**Checkpoint**: Core services ready, camera enumeration works - **USER STORY IMPLEMENTATION CAN BEGIN**
 
 ---
 
 ## Phase 3: User Story 1 - Browse and Select Available Cameras (P1) 🎯
 
-**Goal**: Users can see all available cameras and understand their capabilities
+**Goal**: Users can see all available cameras on the server
 
-**Independent Test**: "Open dashboard → see list of cameras with names and capabilities"
-**Acceptance**: User Story 2 requirements met (FR-001)
+**Acceptance**: FR-001 met, SC-010 (<1s list load)
 
-### Tests for User Story 1 (OPTIONAL)
+### Backend Implementation (US1)
 
-- [ ] T025 [P] [US1] Contract test for GET /api/cameras in `tests/contract/cameras.test.ts`
-  - Request: GET /api/cameras
-  - Response: { cameras: Array<CameraDevice> }
-  - Validate schema and required fields
-
-### Implementation for User Story 1
-
-- [ ] T026 Create API route `app/api/cameras/route.ts`
-  - GET handler: Call cameraManager.getCameras()
-  - Return JSON response with camera list
+- [ ] T031 Create Hono route `server/src/routes/cameras.ts`
+  - GET /api/cameras: Call cameraManager.getCameras()
+  - Return JSON: `{ cameras: CameraDevice[] }`
   - Error handling for enumeration failures
-- [ ] T027 [P] Create React component `app/components/CameraSelector.tsx`
-  - Fetch /api/cameras on mount
-  - Display dropdown/list of cameras
-  - Show camera name and type (builtin/usb)
-  - Handle "no cameras available" state
-  - Selected camera state management
-- [ ] T028 [P] Create React component `app/components/CameraDetails.tsx`
-  - Display selected camera capabilities
-  - Show supported resolutions and frame rates
-  - Display camera type and device name
-- [ ] T029 [P] Update `app/components/Dashboard.tsx`
-  - Import and render CameraSelector
-  - Import and render CameraDetails
-  - Pass selectedCamera state between components
-- [ ] T030 [P] Add CSS styling in `app/styles/globals.css`
-  - Camera selector dropdown styling
-  - Details panel layout
-  - Responsive design for mobile
+- [ ] T032 [P] Register cameras route in `server/src/index.ts`
+  - Import and mount `/api/cameras` routes
 
-**Checkpoint**: Users can open dashboard and see available cameras - **USER STORY 1 COMPLETE**
+### Frontend Implementation (US1)
+
+- [ ] T033 [P] [US1] Create API client `web/src/lib/api.ts`
+  - Base URL configuration (proxy to backend)
+  - `getCameras()`: Fetch camera list
+  - Error handling wrapper
+- [ ] T034 [P] [US1] Create types `web/src/lib/types.ts`
+  - Mirror CameraDevice, Stream interfaces from backend
+- [ ] T035 [P] [US1] Create hook `web/src/hooks/useCameras.ts`
+  - Fetch /api/cameras using react-query
+  - Return cameras array, loading, error states
+- [ ] T036 [P] [US1] Create component `web/src/components/CameraSelector.tsx`
+  - Dropdown/list of cameras
+  - Show camera name and type
+  - Handle "no cameras available" state
+  - onSelect callback for parent
+- [ ] T037 [P] [US1] Create component `web/src/components/Dashboard.tsx`
+  - Main layout with header
+  - Render CameraSelector
+  - Manage selectedCamera state
+
+**Checkpoint**: Users can open dashboard and see available cameras - **US1 COMPLETE**
 
 ---
 
 ## Phase 3: User Story 2 - Start Live Streaming from Webcam (P1) 🎯
 
-**Goal**: Users can start capturing video from selected camera and get HLS URL
+**Goal**: Users can start capturing video and get HLS URL
 
-**Independent Test**: "Select camera → click Start → verify HLS URL generated and stream status is 'active'"
-**Acceptance**: Functional requirements FR-002, FR-003, FR-004, SC-001, SC-002 met
+**Acceptance**: FR-002, FR-003, FR-004, SC-001 (3 clicks), SC-002 (2s URL) met
 
-### Tests for User Story 2 (OPTIONAL)
+### Backend Implementation (US2)
 
-- [ ] T031 [P] [US2] Contract test for POST /api/streams in `tests/contract/streams.test.ts`
-  - POST /api/streams with { cameraId, bitrate, resolution }
-  - Response: { stream: Stream } with hlsUrl
-  - Error case: Camera already in use (409)
-- [ ] T032 [P] [US2] Integration test for stream startup in `tests/integration/stream-start.test.ts`
-  - Start stream from camera → FFmpeg spawns → manifest generates → segments appear
-  - Verify m3u8 file creation within 2 seconds
-
-### Implementation for User Story 2
-
-- [ ] T033 Create `app/lib/stream/streamManager.ts` with:
-  - `startStream(cameraId, options)`: Main stream startup orchestration
-  - Check camera availability (via reservation)
-  - Create stream directory
-  - Spawn FFmpeg process
-  - Register stream in registry
-  - Wait for stream to reach 'active' status
+- [ ] T038 Create `server/src/lib/stream/streamManager.ts` with:
+  - `startStream(cameraId, options)`: Main orchestration
+  - Check camera availability, create directory, spawn FFmpeg
+  - Register stream, wait for 'active' status
   - Return Stream object with hlsUrl
-  - Error handling: camera in use, FFmpeg startup failure
-- [ ] T034 [P] Add `stopStream(streamId)` to streamManager
-  - Kill FFmpeg process gracefully
-  - Release camera
-  - Clean up files
-  - Remove from registry
-- [ ] T035 Create API route `app/api/streams/route.ts`
-  - POST handler: Extract cameraId from body
-  - Call streamManager.startStream()
-  - Return { stream } response (201 Created)
-  - Error responses: 409 (camera in use), 400 (invalid params), 500 (FFmpeg failed)
-  - GET handler: Call streamManager.getAllStreams()
-  - Return { streams: [...] } array
-- [ ] T036 Create API route `app/api/streams/[streamId]/route.ts`
-  - GET handler: Get single stream details
-  - DELETE handler: Stop stream, return success response
-- [ ] T037 [P] Create React component `app/components/StreamControls.tsx`
-  - Render "Start Streaming" button
-  - Disabled state when no camera selected
-  - Loading state during FFmpeg startup
-  - Display selected camera name and streaming status
-  - Display generated HLS URL (with copy-to-clipboard)
-- [ ] T038 [P] Create custom React hook `app/hooks/useStreamStartStop.ts`
-  - `startStream(cameraId)`: POST to /api/streams, poll for 'active' status
-  - `stopStream(streamId)`: DELETE to /api/streams/{id}
-  - Handle errors and provide user feedback
-  - Status polling logic (500ms intervals)
-- [ ] T039 [P] Update `app/components/Dashboard.tsx`
-  - Import StreamControls
-  - Wire up start/stop handlers
-  - Display active stream list
-  - Manage selectedStream state
-- [ ] T040 [P] Create React component `app/components/StreamStatusBadge.tsx`
-  - Visual indicator for stream status (starting/active/stopping/stopped/error)
-  - Color coding (yellow/green/red)
-  - Auto-refresh every 1 second
+- [ ] T039 [P] Add `stopStream(streamId)` to streamManager
+  - Kill FFmpeg gracefully (10s timeout)
+  - Release camera, cleanup files, remove from registry
+- [ ] T040 Create Hono route `server/src/routes/streams.ts`
+  - POST /api/streams: Start new stream
+  - GET /api/streams: List all active streams
+  - GET /api/streams/:id: Get single stream details
+  - DELETE /api/streams/:id: Stop stream
+- [ ] T041 [P] Register streams route in `server/src/index.ts`
 
-**Checkpoint**: Users can select camera and start stream, HLS URL appears - **USER STORIES 1-2 COMPLETE**
+### Frontend Implementation (US2)
+
+- [ ] T042 [P] [US2] Add to API client `web/src/lib/api.ts`
+  - `startStream(cameraId)`: POST /api/streams
+  - `getStreams()`: GET /api/streams
+  - `stopStream(streamId)`: DELETE /api/streams/:id
+- [ ] T043 [P] [US2] Create hook `web/src/hooks/useStreams.ts`
+  - CRUD operations for streams
+  - Polling for stream status updates
+  - Optimistic updates
+- [ ] T044 [P] [US2] Create component `web/src/components/StreamControls.tsx`
+  - "Start Streaming" button
+  - Disabled when no camera selected
+  - Loading state during startup
+  - Display HLS URL with copy button
+- [ ] T045 [P] [US2] Create component `web/src/components/StreamStatusBadge.tsx`
+  - Visual indicator: starting(yellow)/active(green)/error(red)
+- [ ] T046 [P] [US2] Update Dashboard to integrate StreamControls
+
+**Checkpoint**: Users can start stream and see HLS URL - **US1-2 COMPLETE**
 
 ---
 
 ## Phase 3: User Story 3 - Stop Active Stream (P1) 🎯
 
-**Goal**: Users can stop streaming and free up camera resources
+**Goal**: Users can stop streaming and free camera resources
 
-**Independent Test**: "Start stream → click Stop → stream disappears from list, camera becomes available"
 **Acceptance**: FR-005, FR-006 met
 
-### Implementation for User Story 3
+### Frontend Implementation (US3)
 
-- [ ] T041 [P] Add stop button to `app/components/StreamControls.tsx`
-  - Show "Stop Streaming" button when stream is active
-  - Disabled state when no active stream
+- [ ] T047 [P] [US3] Add stop button to `StreamControls.tsx`
+  - Show when stream is active
   - Confirmation dialog before stopping
-- [ ] T042 [P] Add stop functionality to `app/components/StreamList.tsx` (see US4)
-  - Individual stop button for each stream
-  - Trigger useStreamStartStop.stopStream()
-- [ ] T043 [P] Add visual feedback for stopping state
-  - Show "stopping..." status during graceful shutdown
-  - Confirm removal from list after completion
-- [ ] T044 [P] Implement cleanup notification
-  - Show toast/notification when stream stopped
-  - Display cleanup progress
+- [ ] T048 [P] [US3] Add visual feedback for stopping state
+  - Show "stopping..." status
+  - Remove from list after completion
+- [ ] T049 [P] [US3] Add toast notification for stream stopped
 
-**Checkpoint**: Users can stop streams and free cameras - **USER STORIES 1-3 COMPLETE**
+**Checkpoint**: Users can stop streams - **US1-3 COMPLETE**
 
 ---
 
 ## Phase 3: User Story 4 - View All Active Streams (P1) 🎯
 
-**Goal**: Users see real-time list of all active streams with details
+**Goal**: Real-time list of all active streams with details
 
-**Independent Test**: "Start 2 streams from different cameras → see both in list with names and HLS URLs"
 **Acceptance**: FR-006, FR-012, SC-010 met
 
-### Implementation for User Story 4
+### Frontend Implementation (US4)
 
-- [ ] T045 Create custom React hook `app/hooks/useStreamList.ts`
-  - Fetch /api/streams on mount
-  - Poll every 2 seconds for updates
-  - Return streams array and refresh function
-  - Handle loading and error states
-- [ ] T046 Create React component `app/components/StreamList.tsx`
-  - Render table or grid of active streams
-  - Columns: Camera Name, Status, HLS URL, Start Time, Uptime, Actions
-  - Copy-to-clipboard for HLS URL
-  - Stop button for each stream
-  - Empty state: "No active streams"
+- [ ] T050 [P] [US4] Create component `web/src/components/StreamList.tsx`
+  - Table/grid of active streams
+  - Columns: Camera, Status, HLS URL, Start Time, Actions
   - Auto-refresh every 2 seconds
-- [ ] T047 [P] Create React component `app/components/StreamListItem.tsx`
-  - Individual stream row/card
-  - Display stream metadata
-  - Action buttons (copy URL, stop stream, view details)
-  - Format timestamps and duration
-- [ ] T048 [P] Update `app/components/Dashboard.tsx`
-  - Import useStreamList hook
-  - Display StreamList component
-  - Auto-refresh integration
-  - Handle loading states
+  - Empty state: "No active streams"
+- [ ] T051 [P] [US4] Create component `web/src/components/StreamListItem.tsx`
+  - Individual stream row
+  - Copy URL, Stop, View Details buttons
+- [ ] T052 [P] [US4] Update Dashboard to show StreamList
 
-**Checkpoint**: Users can see all active streams in real-time - **USER STORIES 1-4 COMPLETE**
+**Checkpoint**: Users can see all active streams - **US1-4 COMPLETE**
 
 ---
 
 ## Phase 3: User Story 5 - Play Stream in Browser (P1) 🎯
 
-**Goal**: Users can watch live video directly in browser with embedded player
+**Goal**: Watch live video directly in browser
 
-**Independent Test**: "Start stream → click play → video plays in browser player"
-**Acceptance**: FR-008, SC-003, SC-008 met
+**Acceptance**: FR-008, SC-003 (5s playback), SC-008 met
 
-### Tests for User Story 5 (OPTIONAL)
+### Backend Implementation (US5)
 
-- [ ] T049 [P] [US5] Integration test for manifest serving in `tests/integration/manifest.test.ts`
-  - GET /api/hlsstream/{streamId}/manifest.m3u8 returns valid m3u8
-  - Contains correct segment references
-  - Updates with new segments every 2 seconds
+- [ ] T053 Create Hono route `server/src/routes/hls.ts`
+  - GET /api/hls/:streamId/manifest.m3u8: Serve m3u8
+  - GET /api/hls/:streamId/:segment: Serve .ts files
+  - Correct MIME types and cache headers
+- [ ] T054 [P] Register HLS route in `server/src/index.ts`
+- [ ] T055 [P] Add static file serving for HLS segments
 
-### Implementation for User Story 5
+### Frontend Implementation (US5)
 
-- [ ] T050 Create API route `app/api/hlsstream/[streamId]/manifest/route.ts`
-  - GET handler: Retrieve manifest for stream
-  - Call hlsManager.generateManifest(streamId)
-  - Return m3u8 content with correct MIME type
-  - Cache-Control: no-cache headers
-  - Error: 404 if stream not found or not active
-- [ ] T051 [P] Create API route `app/api/hlsstream/[streamId]/[segmentFile]/route.ts`
-  - GET handler: Serve video segment file
-  - Support HTTP Range requests for seeking
-  - Return correct Content-Type: video/mp2t
-  - Cache-Control: public, max-age=31536000
-  - Error: 404 if segment not found
-- [ ] T052 [P] Create React component `app/components/StreamPlayer.tsx`
-  - Import hls.js library
-  - Render HTML5 video element
-  - Load HLS stream on mount
-  - Handle video element lifecycle
-  - Error handling for network/playback errors
-  - Play/pause/volume controls (native video controls)
-- [ ] T053 [P] Create custom React hook `app/hooks/useHLSPlayer.ts`
-  - `useHLSPlayer(videoRef, hlsUrl)`: Initialize hls.js
-  - Attach media and load source
-  - Handle MANIFEST_PARSED event
+- [ ] T056 [P] [US5] Create hook `web/src/hooks/useHLSPlayer.ts`
+  - Initialize hls.js with video element ref
+  - Handle MANIFEST_PARSED, ERROR events
   - Auto-play on ready
   - Cleanup on unmount
-  - Reconnection logic for network errors
-- [ ] T054 [P] Create React component `app/components/StreamPlayerModal.tsx`
-  - Modal/popover to display player full-screen
-  - Close button
+- [ ] T057 [P] [US5] Create component `web/src/components/StreamPlayer.tsx`
+  - HTML5 video element
+  - hls.js integration
+  - Native play/pause/volume controls
+  - Error display for playback issues
+- [ ] T058 [P] [US5] Create component `web/src/components/StreamPlayerModal.tsx`
+  - Modal wrapper for player
+  - Close button, ESC key handling
   - Stream info overlay
-  - Keyboard shortcuts (space=play/pause, ESC=close)
-- [ ] T055 [P] Update StreamListItem to add play button
-  - Click handler opens StreamPlayerModal
-  - Pass streamId and hlsUrl to player
-- [ ] T056 [P] Add keyboard navigation support
-  - ESC to close player
-  - P to toggle play/pause
-  - M to toggle mute
+- [ ] T059 [P] [US5] Add Play button to StreamListItem
+  - Opens StreamPlayerModal with stream URL
 
-**Checkpoint**: Users can click play and watch video in browser - **USER STORIES 1-5 COMPLETE (MVP)**
+**Checkpoint**: Users can watch video in browser - **US1-5 COMPLETE (MVP)**
 
 ---
 
-## Phase 4: User Story 6 - Seek and Set Playback Time (P2)
+## Phase 4: User Story 6 - Seek and Playback Control (P2)
 
-**Goal**: Users can pause, seek backward/forward in buffered stream content
+**Goal**: Pause, seek, speed control for buffered content
 
-**Independent Test**: "Stream running for 20s → pause → seek backward → verify playback resumes from selected time"
-**Acceptance**: FR-009, FR-010, SC-005 met
+**Acceptance**: FR-009, FR-010, SC-005 (1s seek) met
 
-### Implementation for User Story 6
+### Frontend Implementation (US6)
 
-- [ ] T057 [P] Enhance `app/components/StreamPlayer.tsx` with seek controls
-  - Add progress bar showing current playback position
-  - Display DVR window (available buffered time range)
-  - Show current time and total available duration
-  - Implement seek-on-click functionality
-- [ ] T058 [P] Enhance `app/hooks/useHLSPlayer.ts` with seeking logic
-  - Capture current time and update progress bar
-  - Handle user seek requests
-  - Validate seek is within available buffer (DVR window)
-  - Handle seek beyond available segments gracefully
-- [ ] T059 [P] Add playback speed control to StreamPlayer
-  - Dropdown: 0.5x, 1x, 1.5x, 2x speeds
-  - Update video.playbackRate on selection
-  - Display current speed indicator
-- [ ] T060 [P] Add pause/resume button to StreamPlayer
-  - Primary button: pause when playing, resume when paused
-  - Visual indicator showing current state
-  - Keyboard shortcut: spacebar
-- [ ] T061 [P] Update StreamPlayerModal to display seek position
-  - Show formatted current time (MM:SS)
-  - Show formatted available duration
-  - Update in real-time during playback
+- [ ] T060 [P] [US6] Enhance StreamPlayer with seek controls
+  - Progress bar showing DVR window
+  - Current time and available duration display
+  - Click-to-seek functionality
+- [ ] T061 [P] [US6] Add playback speed control
+  - Dropdown: 0.5x, 1x, 1.5x, 2x
+- [ ] T062 [P] [US6] Enhance useHLSPlayer with seeking logic
+  - Validate seek within DVR buffer
+  - Handle seek beyond available segments
 
-**Checkpoint**: Users can seek and control playback - **USER STORIES 1-6 COMPLETE**
+**Checkpoint**: Users can seek and control playback - **US1-6 COMPLETE**
+
+---
+
+## Phase 4: User Story 7 - Stream Information (P2)
+
+**Goal**: View detailed stream metadata
+
+**Acceptance**: FR-014, FR-007 met
+
+### Frontend Implementation (US7)
+
+- [ ] T063 [P] [US7] Create component `web/src/components/StreamDetailsModal.tsx`
+  - Display: Stream ID, Camera, Status, Start Time, Uptime
+  - HLS URL with copy button
+  - Segment count, bitrate info
+- [ ] T064 [P] [US7] Create component `web/src/components/CopyableField.tsx`
+  - Read-only text with copy button
+  - Success toast on copy
+- [ ] T065 [P] [US7] Add "Details" button to StreamListItem
+- [ ] T066 [P] [US7] Add time formatting utilities `web/src/lib/time.ts`
+
+**Checkpoint**: Users can view stream details - **US1-7 COMPLETE**
+
+---
+
+## Phase 5: Polish, Error Handling & Monitoring
+
+**Duration**: 2-3 hours
+
+### Error Handling
+
+- [ ] T067 Implement FFmpeg error detection in streamManager
+  - Monitor stderr for errors
+  - Detect camera disconnection (within 5 seconds per FR-015)
+  - Update stream status to 'error' with message
+  - Auto-cleanup on failure
+- [ ] T068 [P] Add validation for stream parameters
+  - Bitrate: 500-8000 kbps
+  - Return 400 with detailed errors
+- [ ] T069 [P] Handle disk space issues
+  - Check available space before starting
+  - Return 507 if < 500MB available
+
+### UI Polish
+
+- [ ] T070 [P] Add loading states and spinners across all components
+- [ ] T071 [P] Create Toast notification system in `web/src/components/ui/Toast.tsx`
+- [ ] T072 [P] Add responsive design for mobile
+- [ ] T073 [P] Add dark mode support (optional)
+
+### Monitoring
+
+- [ ] T074 Create health check endpoint `server/src/routes/health.ts`
+  - FFmpeg availability check
+  - Active stream count
+  - Disk usage report
+- [ ] T075 [P] Implement structured logging throughout backend
+- [ ] T076 [P] Add stream quality monitoring (frame drop detection for FR-011)
+
+### Testing
+
+- [ ] T077 [P] Write E2E tests in `tests/e2e/streaming.spec.ts`
+- [ ] T078 [P] Add stability/soak test for 1-hour runtime (SC-007)
+
+**Checkpoint**: Robust application with good error handling
+
+---
+
+## Phase 6: Documentation & Deployment
+
+**Duration**: 1-2 hours
+
+### Documentation
+
+- [ ] T079 Add JSDoc comments to all public functions
+- [ ] T080 [P] Document TypeScript interfaces
+- [ ] T081 [P] Update README with API documentation
+- [ ] T082 [P] Document .env configuration
+
+### Deployment
+
+- [ ] T083 Create `server/Dockerfile`
+- [ ] T084 Create `web/Dockerfile`
+- [ ] T085 Create `docker-compose.yml` for full stack
+- [ ] T086 [P] Create deployment guide
+
+### Final Testing
+
+- [ ] T087 Run full integration test suite
+- [ ] T088 Test on multiple browsers (Chrome, Firefox, Safari, Edge)
+
+---
+
+## Summary
+
+### Task Statistics
+
+| Phase | Purpose | Task Count | Duration | Prerequisites |
+|-------|---------|-----------|----------|---|
+| Phase 1 | Setup | 17 | 1-2h | None |
+| Phase 2 | Foundation | 13 | 2-3h | Phase 1 ✓ |
+| Phase 3 | P1 Stories (MVP) | 29 | 3-4h | Phase 2 ✓ |
+| Phase 4 | P2 Stories | 7 | 1-2h | Phase 3 ✓ |
+| Phase 5 | Polish | 12 | 2-3h | Phase 4 ✓ |
+| Phase 6 | Docs/Deploy | 10 | 1-2h | Phase 5 ✓ |
+| **TOTAL** | **Complete Feature** | **88** | **70-100h** | **5-7 days** |
+
+### MVP Scope (Minimum Viable Product)
+
+**Phases 1-3 deliver MVP** (all P1 user stories):
+
+✅ **Phase 1**: Backend (Hono) and Frontend (Vite/React) initialized
+✅ **Phase 2**: Core infrastructure ready
+✅ **Phase 3**: All P1 user stories complete:
+  - US1: Browse and select cameras
+  - US2: Start live streaming  
+  - US3: Stop streaming
+  - US4: View active streams
+  - US5: Play in browser
+
+**MVP Duration**: 35-50 hours (3-4 days)
+
+### Success Criteria Mapping
+
+| Success Criteria | Supporting Tasks |
+|---|---|
+| SC-001: 3 clicks to start | T036 (selector) + T044 (controls) |
+| SC-002: 2 sec URL generation | T038 (streamManager) |
+| SC-003: 5 sec playback | T056-T057 (hls.js player) |
+| SC-004: 2 concurrent streams | T024 (registry) + T021 (reservation) |
+| SC-005: 1 sec seek response | T062 (seek logic) |
+| SC-006: UI responsive | T070, T072 (polish) |
+| SC-007: 1 hour runtime | T078 (soak test) |
+| SC-008: All browser ops | T056-T059 (full player) |
+| SC-009: 90% success rate | T067-T069 (error handling) |
+| SC-010: 1 sec list load | T035, T050 (react-query) |
 
 ---
 

@@ -5,27 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "创建一个 hono + typescript 的服务器，能打开当前机器的摄像头，读取 webcam 的内容，保存为 hls stream..."
 
+**Architecture Decision**: 
+- **Backend**: Hono + TypeScript (Node.js) - REST API + FFmpeg camera capture
+- **Frontend**: Vite + React + Tailwind CSS - SPA for stream management and playback
+- **Camera Access**: Server-side only via FFmpeg (not browser WebRTC)
+
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Start Live Streaming from Webcam (Priority: P1)
+### User Story 1 - Browse and Select Available Cameras (Priority: P1)
 
-A user wants to start capturing video from their computer's webcam and stream it as HLS so it can be viewed in standard video players.
-
-**Why this priority**: This is the core functionality that enables the entire feature. Without it, users cannot capture or stream video.
-
-**Independent Test**: Can be fully tested by opening the UI, selecting a camera, clicking "Start Streaming", and verifying that an HLS URL is generated and playable in a video player.
-
-**Acceptance Scenarios**:
-
-1. **Given** the user is on the streaming dashboard, **When** they select an available camera from the dropdown and click "Start Streaming", **Then** the system starts capturing video from that camera and displays a generated HLS URL
-2. **Given** streaming is active, **When** the user tries to start streaming again with the same camera, **Then** the system returns an error indicating that camera is already in use
-3. **Given** streaming is active, **When** the user attempts to start streaming with a different available camera, **Then** the system successfully starts streaming from the new camera
-
----
-
-### User Story 2 - Browse and Select Available Cameras (Priority: P1)
-
-A user wants to see all cameras connected to their computer and select which one to use for streaming.
+A user wants to see all cameras connected to the server machine and select which one to use for streaming.
 
 **Why this priority**: Users need to discover and choose cameras before they can start streaming. This is essential for the initial setup.
 
@@ -36,6 +25,22 @@ A user wants to see all cameras connected to their computer and select which one
 1. **Given** the user opens the dashboard, **When** the page loads, **Then** the system displays a list of all available cameras with identifiable names or IDs
 2. **Given** multiple cameras are connected, **When** the user views the camera list, **Then** each camera is clearly distinguishable
 3. **Given** no cameras are connected, **When** the user opens the dashboard, **Then** the system displays a message indicating no cameras are available
+
+---
+
+### User Story 2 - Start Live Streaming from Webcam (Priority: P1)
+
+A user wants to start capturing video from the server's webcam and stream it as HLS so it can be viewed in standard video players.
+
+**Why this priority**: This is the core functionality that enables the entire feature. Without it, users cannot capture or stream video.
+
+**Independent Test**: Can be fully tested by opening the UI, selecting a camera, clicking "Start Streaming", and verifying that an HLS URL is generated and playable in a video player.
+
+**Acceptance Scenarios**:
+
+1. **Given** the user is on the streaming dashboard, **When** they select an available camera from the dropdown and click "Start Streaming", **Then** the backend starts capturing video from that camera via FFmpeg and displays a generated HLS URL
+2. **Given** streaming is active, **When** the user tries to start streaming again with the same camera, **Then** the system returns an error indicating that camera is already in use
+3. **Given** streaming is active, **When** the user attempts to start streaming with a different available camera, **Then** the system successfully starts streaming from the new camera
 
 ---
 
@@ -141,11 +146,11 @@ A user wants to view detailed information about a stream including its HLS URL, 
 - **FR-008**: System MUST support playing HLS streams directly in the browser using an embedded video player
 - **FR-009**: System MUST support seeking/scrubbing through stream content that has been buffered
 - **FR-010**: System MUST support pausing, resuming, and adjusting playback speed of streams
-- **FR-011**: System MUST maintain HLS stream quality and prevent frame drops during normal operation
+- **FR-011**: System MUST maintain HLS stream quality with ≥99% frame delivery rate and support minimum 720p@25fps encoding; frame drops during normal operation should be <1%
 - **FR-012**: System MUST handle multiple concurrent streams from different cameras
 - **FR-013**: System MUST provide REST API endpoints to control streams (start, stop, list, get details)
 - **FR-014**: System MUST generate unique identifiable names/IDs for each active stream for easy reference
-- **FR-015**: System MUST monitor camera health and handle disconnection gracefully with user notification
+- **FR-015**: System MUST detect camera disconnection within 5 seconds and handle gracefully with user notification; backend should attempt stream cleanup and camera release automatically
 
 ### Key Entities
 
@@ -171,9 +176,10 @@ A user wants to view detailed information about a stream including its HLS URL, 
 
 ## Assumptions
 
-- Users have webcams connected via standard USB or built-in camera interfaces
+- Users have webcams connected to the **server machine** via standard USB or built-in camera interfaces
+- Camera capture is performed **server-side via FFmpeg** (not browser WebRTC)
 - Target browsers support HTML5 video player (Chrome, Firefox, Safari, Edge - modern versions)
-- The server runs on the same machine or local network as the webcams
+- The server runs on the same machine as the webcams (cameras must be accessible to FFmpeg)
 - Network bandwidth is sufficient for HLS streaming (assumes reasonable LAN speeds)
 - HLS segments can be stored temporarily on the server's local storage
 - Users have basic technical knowledge to navigate a web UI (no advanced configuration required)

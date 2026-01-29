@@ -5,39 +5,52 @@
 
 ## Summary
 
-Build a real-time HLS video streaming server that captures webcam input and makes it playable in standard browsers. The system will detect available cameras, manage multiple concurrent streams via REST API, and provide a web-based UI for all operations. Uses Next.js for the full-stack application (backend API + frontend UI) with FFmpeg for video encoding/transcoding to HLS format.
+Build a real-time HLS video streaming server that captures webcam input via FFmpeg on the backend and makes it playable in standard browsers. The system will detect available cameras, manage multiple concurrent streams via REST API, and provide a web-based UI for all operations. Uses **Hono** for the backend API server and **Vite + React + Tailwind CSS** for the frontend SPA.
 
 ## Technical Context
 
-**Language/Version**: TypeScript (Node.js 18+), JavaScript (React 18+)  
-**Primary Dependencies**: 
-  - Next.js 14+ (full-stack framework - API routes + React frontend)
-  - FFmpeg (video encoding/transcoding to HLS)
-  - node-webrtc or similar (camera access via browser APIs)
-  - hls.js (browser-side HLS playback)
-  - TypeScript 5+
+**Architecture**: Separate backend and frontend projects
 
+### Backend (Hono API Server)
+**Language/Version**: TypeScript 5+, Node.js 18+  
+**Framework**: Hono 4+ (lightweight, fast HTTP framework)  
+**Primary Dependencies**: 
+  - Hono (REST API framework)
+  - @hono/node-server (Node.js adapter)
+  - FFmpeg (video encoding via child process)
+  - uuid (stream ID generation)
+
+### Frontend (Vite React SPA)
+**Language/Version**: TypeScript 5+, React 18+  
+**Framework**: Vite 5+ (build tool and dev server)  
+**Primary Dependencies**: 
+  - React 18+ (UI framework)
+  - Tailwind CSS 3+ (styling)
+  - hls.js 1.4+ (browser-side HLS playback)
+  - @tanstack/react-query (data fetching)
+
+**Camera Access**: Server-side only via FFmpeg (no browser WebRTC)  
 **Storage**: File-based (local disk for HLS segments .ts files and m3u8 manifests)  
-**Testing**: Jest (unit), Playwright/Cypress (integration/E2E)  
-**Target Platform**: Node.js server (Windows/Mac/Linux) + modern browsers (Chrome, Firefox, Safari, Edge)
-**Project Type**: Web (monorepo style: backend API in Next.js API routes + React frontend in same project)  
+**Testing**: Vitest (unit), Playwright (E2E)  
+**Target Platform**: Node.js server (Windows/Mac/Linux) + modern browsers  
+**Project Type**: Web (separate backend + frontend directories)  
 **Performance Goals**: 
   - Capture and encode to HLS within 2 seconds of stream start
-  - Support at least 2 concurrent streams with <500ms latency
+  - Support at least 2 concurrent streams with <500ms encode-to-manifest latency
   - HLS segments generated every ~2 seconds
-  - Maintain 60 fps capture if camera supports, with reasonable bitrate (2-5 Mbps adaptive)
+  - Maintain ≥99% frame delivery rate, minimum 720p@25fps
 
 **Constraints**: 
   - <2 second startup time for stream
   - <5 second initial playback delay in browser
   - Automatic HLS buffer management (keep ~30 seconds of segments)
-  - Graceful camera disconnection handling
+  - Camera disconnection detection within 5 seconds
 
 **Scale/Scope**: 
-  - Single machine operation (cameras on same host or local network)
+  - Single machine operation (cameras connected to server host)
   - Support 2-4 concurrent streams
-  - ~5000 LOC for MVP (backend) + 3000 LOC (frontend)
-  - ~20 UI screens/components
+  - ~3000 LOC backend + ~2500 LOC frontend
+  - ~15 React components
 
 ## Constitution Check
 
@@ -46,11 +59,11 @@ Build a real-time HLS video streaming server that captures webcam input and make
 **Status**: ✅ PASS - No violations detected
 
 **Rationale**:
-- Single monorepo project combining backend (API routes) and frontend (React) - acceptable for integrated service
-- No external databases needed (file-based segment storage)
-- Clear separation of concerns: camera capture → HLS encoding → manifest generation → browser playback
-- Straightforward technical stack with proven libraries
-- No architectural complexities requiring additional justification
+- Clean separation: Hono backend (REST API + FFmpeg) + Vite frontend (React SPA)
+- No external databases needed (file-based segment storage + in-memory registry)
+- Clear separation of concerns: FFmpeg capture → HLS encoding → browser playback
+- Lightweight stack: Hono is minimal/fast, Vite provides excellent DX
+- Camera access is server-side only (FFmpeg) - simpler than WebRTC
 
 ## Project Structure
 
@@ -63,100 +76,102 @@ specs/[###-feature]/
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
 
 ```text
-# Next.js Web Application (Frontend + Backend API combined)
+# Separate Backend + Frontend Architecture
 
-app/
-├── api/
-│   ├── cameras/                    # GET /api/cameras - list available cameras
-│   │   ├── route.ts
-│   │   └── [id].ts
-│   ├── streams/                    # Stream lifecycle management
-│   │   ├── route.ts               # GET (list), POST (start stream)
-│   │   └── [streamId].ts          # GET (info), DELETE (stop stream)
-│   ├── health/
-│   │   └── route.ts               # Health check endpoint
-│   └── hlsstream/                 # Serve HLS segments and manifests
-│       ├── [streamId]/
-│       │   ├── route.ts           # Serve m3u8 manifest
-│       │   └── [segmentFile].ts   # Serve .ts video segments
+├── server/                         # Hono Backend (Node.js)
+│   ├── src/
+│   │   ├── index.ts               # Hono app entry point
+│   │   ├── routes/
+│   │   │   ├── cameras.ts         # GET /api/cameras
+│   │   │   ├── streams.ts         # POST/GET/DELETE /api/streams
+│   │   │   ├── hls.ts             # Serve m3u8 and .ts segments
+│   │   │   └── health.ts          # GET /api/health
+│   │   ├── lib/
+│   │   │   ├── camera/
+│   │   │   │   ├── cameraManager.ts    # Detect, enumerate cameras via FFmpeg
+│   │   │   │   └── platformHelpers.ts  # OS-specific device detection
+│   │   │   ├── ffmpeg/
+│   │   │   │   ├── ffmpegWorker.ts     # FFmpeg child process wrapper
+│   │   │   │   └── transcodeConfig.ts  # HLS encoding parameters
+│   │   │   ├── stream/
+│   │   │   │   ├── streamManager.ts    # Orchestrate camera → FFmpeg → HLS
+│   │   │   │   └── streamRegistry.ts   # In-memory stream state store
+│   │   │   ├── hls/
+│   │   │   │   ├── hlsManager.ts       # Manifest generation, segment cleanup
+│   │   │   │   └── segmentWriter.ts    # File I/O for .ts and m3u8
+│   │   │   ├── types/
+│   │   │   │   └── index.ts            # Shared TypeScript interfaces
+│   │   │   └── utils/
+│   │   │       ├── uuid.ts             # Stream ID generation
+│   │   │       └── logging.ts          # Structured logging
+│   │   └── middleware/
+│   │       └── cors.ts                 # CORS for frontend access
+│   ├── public/
+│   │   └── hls/                        # HLS segments storage
+│   │       └── [streamId]/
+│   │           ├── manifest.m3u8
+│   │           └── segment_*.ts
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── camera.test.ts
+│   │   │   ├── ffmpeg.test.ts
+│   │   │   └── stream.test.ts
+│   │   └── integration/
+│   │       └── api.test.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vitest.config.ts
+│   └── .env.example
 │
-├── components/
-│   ├── StreamList.tsx              # Display all active streams
-│   ├── StreamPlayer.tsx            # HLS video player component
-│   ├── CameraSelector.tsx          # Camera selection UI
-│   ├── StreamControls.tsx          # Start/stop controls
-│   ├── StreamDetails.tsx           # Stream info display
-│   └── Dashboard.tsx               # Main dashboard layout
+├── web/                            # Vite + React Frontend
+│   ├── src/
+│   │   ├── main.tsx               # React app entry
+│   │   ├── App.tsx                # Root component with routing
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx      # Main dashboard layout
+│   │   │   ├── CameraSelector.tsx # Camera dropdown
+│   │   │   ├── StreamControls.tsx # Start/stop buttons
+│   │   │   ├── StreamList.tsx     # Active streams list
+│   │   │   ├── StreamPlayer.tsx   # HLS video player (hls.js)
+│   │   │   ├── StreamDetails.tsx  # Stream info modal
+│   │   │   └── ui/                # Reusable UI components
+│   │   │       ├── Button.tsx
+│   │   │       ├── Card.tsx
+│   │   │       └── Toast.tsx
+│   │   ├── hooks/
+│   │   │   ├── useCameras.ts      # Fetch camera list
+│   │   │   ├── useStreams.ts      # Stream CRUD operations
+│   │   │   └── useHLSPlayer.ts    # hls.js integration
+│   │   ├── lib/
+│   │   │   ├── api.ts             # API client (fetch wrapper)
+│   │   │   └── types.ts           # Shared types (mirror server types)
+│   │   └── styles/
+│   │       └── globals.css        # Tailwind imports
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── tsconfig.json
 │
-├── pages/                          # or use app router pages
-│   ├── index.tsx                   # Main dashboard page
-│   ├── stream/
-│   │   └── [streamId].tsx         # Individual stream view (optional)
-│   └── _app.tsx
+├── tests/
+│   └── e2e/
+│       └── streaming.spec.ts      # Playwright E2E tests
 │
-├── lib/
-│   ├── hls/
-│   │   ├── hlsManager.ts          # HLS segment/manifest generation
-│   │   └── segmentWriter.ts       # Write .ts and m3u8 files
-│   ├── camera/
-│   │   ├── cameraManager.ts       # Detect, enumerate cameras
-│   │   └── videoCapture.ts        # Webcam capture via native module
-│   ├── ffmpeg/
-│   │   ├── ffmpegWorker.ts        # FFmpeg encoding process wrapper
-│   │   ├── transcodeConfig.ts     # HLS encoding parameters
-│   │   └── streamProcess.ts       # Manage ffmpeg child process
-│   ├── stream/
-│   │   ├── streamManager.ts       # Coordinate camera → capture → encode → HLS
-│   │   └── streamRegistry.ts      # In-memory stream state store
-│   ├── types/
-│   │   └── index.ts               # Shared TypeScript interfaces
-│   └── utils/
-│       ├── uuid.ts                # Generate stream IDs
-│       └── logging.ts             # Structured logging
-│
-├── public/
-│   └── hls/                        # HLS segments storage (manifests + .ts files)
-│       └── [streamId]/
-│           ├── manifest.m3u8      # Generated dynamically
-│           └── segment_*.ts       # Video segments
-│
-├── styles/
-│   └── globals.css
-│
-├── hooks/
-│   ├── useStreamList.ts           # Fetch and manage active streams
-│   └── useHLSPlayer.ts            # Video player integration
-│
-└── tests/
-    ├── unit/
-    │   ├── ffmpeg.test.ts
-    │   ├── camera.test.ts
-    │   └── stream.test.ts
-    ├── integration/
-    │   ├── api.test.ts
-    │   └── capture-encode.test.ts
-    └── e2e/
-        └── streaming.spec.ts       # Full user flow tests
-
-package.json
-tsconfig.json
-next.config.js
-jest.config.js
-.env.example
+└── README.md
 ```
 
-**Structure Decision**: Single Next.js monorepo with:
-- Backend: API routes in `/app/api/` for stream control and HLS serving
-- Frontend: React components in `/app/components/` and pages in `/app/pages/`
-- Utilities: Shared TypeScript libraries for camera, FFmpeg, HLS management
-- Storage: HLS segments/manifests served from `/public/hls/` directory
-- This integrates the full application stack in one repository for easier development and deployment
+**Structure Decision**: Separate backend and frontend with:
+- **Backend (server/)**: Hono API server with FFmpeg integration for camera capture
+- **Frontend (web/)**: Vite + React SPA with Tailwind CSS for styling
+- **Communication**: REST API over HTTP, CORS enabled for local development
+- **HLS Serving**: Backend serves .m3u8 and .ts files from `server/public/hls/`
 
 ## Complexity Tracking
 
@@ -168,3 +183,4 @@ jest.config.js
 | HLS manifest generation | Required by HLS spec - automatic file-based approach simpler than external streaming CDN |
 | Concurrent stream management | Multiple cameras need parallel processing - necessary for feature requirement FR-012 |
 | Browser-based playback | User requirement to avoid external tools - hls.js library simplifies browser implementation |
+| Separate backend/frontend | Clean architecture separation, independent scaling and deployment |
