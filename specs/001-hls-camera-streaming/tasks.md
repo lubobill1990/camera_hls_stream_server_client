@@ -29,28 +29,28 @@
 
 ### Backend Setup (server/)
 
-- [ ] T001 Create `server/` directory and run `npm init -y`
-- [ ] T002 [P] Install Hono: `npm install hono @hono/node-server`
-- [ ] T003 [P] Install dev dependencies: `npm install -D typescript tsx vitest @types/node`
-- [ ] T004 [P] Install utilities: `npm install uuid && npm install -D @types/uuid`
-- [ ] T005 Create `server/tsconfig.json` with strict mode, ESM, NodeNext resolution
-- [ ] T006 Create `server/src/index.ts` with Hono app skeleton and health endpoint
-- [ ] T007 [P] Create `server/.env.example` with PORT, FFMPEG_PATH, HLS_OUTPUT_DIR
-- [ ] T008 [P] Add scripts in `server/package.json`: dev (tsx watch), build, start
+- [X] T001 Create `server/` directory and run `npm init -y`
+- [X] T002 [P] Install Hono: `npm install hono @hono/node-server`
+- [X] T003 [P] Install dev dependencies: `npm install -D typescript tsx vitest @types/node`
+- [X] T004 [P] Install utilities: `npm install uuid && npm install -D @types/uuid`
+- [X] T005 Create `server/tsconfig.json` with strict mode, ESM, NodeNext resolution
+- [X] T006 Create `server/src/index.ts` with Hono app skeleton and health endpoint
+- [X] T007 [P] Create `server/.env.example` with PORT, FFMPEG_PATH, HLS_OUTPUT_DIR
+- [X] T008 [P] Add scripts in `server/package.json`: dev (tsx watch), build, start
 
 ### Frontend Setup (web/)
 
-- [ ] T009 Create Vite React project: `npm create vite@latest web -- --template react-ts`
-- [ ] T010 [P] Install Tailwind: `npm install -D tailwindcss postcss autoprefixer`
-- [ ] T011 [P] Install dependencies: `npm install hls.js @tanstack/react-query`
-- [ ] T012 Create `web/tailwind.config.js` and `web/postcss.config.js`
-- [ ] T013 [P] Add Tailwind directives to `web/src/index.css`
-- [ ] T014 [P] Configure API proxy in `web/vite.config.ts` (forward /api to localhost:3001)
+- [X] T009 Create Vite React project: `npm create vite@latest web -- --template react-ts`
+- [X] T010 [P] Install Tailwind: `npm install -D tailwindcss postcss autoprefixer`
+- [X] T011 [P] Install dependencies: `npm install hls.js @tanstack/react-query`
+- [X] T012 Create `web/tailwind.config.js` and `web/postcss.config.js`
+- [X] T013 [P] Add Tailwind directives to `web/src/index.css`
+- [X] T014 [P] Configure API proxy in `web/vite.config.ts` (forward /api to localhost:3001)
 
 ### Shared Setup
 
-- [ ] T015 Create root `README.md` with setup instructions for both projects
-- [ ] T016 [P] Create root `.gitignore` for node_modules, dist, server/public/hls/*
+- [X] T015 Create root `README.md` with setup instructions for both projects
+- [X] T016 [P] Create root `.gitignore` for node_modules, dist, server/public/hls/*
 
 **Checkpoint**: `npm run dev` works in both server/ (port 3001) and web/ (port 5173) - **REQUIRED BEFORE PHASE 2**
 
@@ -66,57 +66,57 @@
 
 ### Type Definitions
 
-- [ ] T017 Create `server/src/lib/types/index.ts` with all TypeScript interfaces:
+- [X] T017 Create `server/src/lib/types/index.ts` with all TypeScript interfaces:
   - CameraDevice, CameraCapabilities, CameraStatus enum
   - Stream, StreamStatus enum, HLSSegment, StreamManifest
   - API request/response types per contracts/api.md
 
 ### Camera Management
 
-- [ ] T018 Create `server/src/lib/camera/cameraManager.ts` with:
+- [X] T018 Create `server/src/lib/camera/cameraManager.ts` with:
   - `discoverCameras()`: Run FFmpeg -list_devices and parse output
   - `getCameras()`: Return camera list with current status
   - `getCameraById(id)`: Get single camera
   - `reserveCamera(id)` / `releaseCamera(id)`: Track camera usage
-- [ ] T019 [P] Create `server/src/lib/camera/platformHelpers.ts`:
+- [X] T019 [P] Create `server/src/lib/camera/platformHelpers.ts`:
   - `getFFmpegDeviceArgs(platform)`: Windows dshow, macOS avfoundation, Linux v4l2
   - `parseDeviceList(output, platform)`: Parse FFmpeg output to CameraDevice[]
 
 ### FFmpeg Integration
 
-- [ ] T020 Create `server/src/lib/ffmpeg/ffmpegWorker.ts` with:
+- [X] T020 Create `server/src/lib/ffmpeg/ffmpegWorker.ts` with:
   - `spawnFFmpeg(cameraId, streamId, options)`: Start FFmpeg child process
   - `killFFmpeg(process, timeout)`: Graceful shutdown with 10s timeout
   - Event handling for stdout/stderr
-- [ ] T021 [P] Create `server/src/lib/ffmpeg/transcodeConfig.ts` with:
+- [X] T021 [P] Create `server/src/lib/ffmpeg/transcodeConfig.ts` with:
   - `buildFFmpegArgs(camera, stream, outputDir)`: Generate full FFmpeg command
   - Default config: ultrafast preset, 2500 kbps, 720p, 2-sec segments, 10 segment window
 
 ### Stream Registry
 
-- [ ] T022 Create `server/src/lib/stream/streamRegistry.ts`:
+- [X] T022 Create `server/src/lib/stream/streamRegistry.ts`:
   - In-memory Map<streamId, Stream> store
   - `register(stream)`, `get(id)`, `update(id, partial)`, `remove(id)`, `getAll()`
   - Status transition validation (starting → active → stopping → stopped)
 
 ### HLS Utilities
 
-- [ ] T023 Create `server/src/lib/hls/hlsManager.ts` with:
+- [X] T023 Create `server/src/lib/hls/hlsManager.ts` with:
   - `createStreamDir(streamId)`: Create server/public/hls/{streamId}/
   - `cleanupStreamDir(streamId)`: Delete directory and contents
   - `listSegments(streamId)`: Get .ts files with metadata
   - `generateManifest(streamId)`: Build m3u8 content from segments
-- [ ] T024 [P] Create `server/src/lib/utils/uuid.ts`:
+- [X] T024 [P] Create `server/src/lib/utils/uuid.ts`:
   - `generateStreamId()`: Return UUID v4 prefixed with "stream-"
 
 ### Middleware
 
-- [ ] T025 [P] Create `server/src/middleware/cors.ts`:
+- [X] T025 [P] Create `server/src/middleware/cors.ts`:
   - CORS middleware allowing localhost origins for dev
 
 ### Logging
 
-- [ ] T026 [P] Create `server/src/lib/utils/logging.ts`:
+- [X] T026 [P] Create `server/src/lib/utils/logging.ts`:
   - Structured logger with timestamp, level, context
   - Log FFmpeg events, API requests, errors
 
@@ -134,28 +134,28 @@
 
 ### Backend (US1)
 
-- [ ] T027 [US1] Create `server/src/routes/cameras.ts`:
+- [X] T027 [US1] Create `server/src/routes/cameras.ts`:
   - GET /cameras handler → call cameraManager.getCameras()
   - Return `{ cameras: CameraDevice[] }`
   - Error handling: 500 if enumeration fails
-- [ ] T028 [P] [US1] Register cameras route in `server/src/index.ts`
+- [X] T028 [P] [US1] Register cameras route in `server/src/index.ts`
 
 ### Frontend (US1)
 
-- [ ] T029 [P] [US1] Create `web/src/lib/api.ts`:
+- [X] T029 [P] [US1] Create `web/src/lib/api.ts`:
   - Base fetch wrapper with error handling
   - `getCameras(): Promise<CameraDevice[]>`
-- [ ] T030 [P] [US1] Create `web/src/lib/types.ts`:
+- [X] T030 [P] [US1] Create `web/src/lib/types.ts`:
   - Mirror CameraDevice, Stream, etc. from server types
-- [ ] T031 [P] [US1] Create `web/src/hooks/useCameras.ts`:
+- [X] T031 [P] [US1] Create `web/src/hooks/useCameras.ts`:
   - React Query hook fetching /api/cameras
   - Return { cameras, isLoading, error, refetch }
-- [ ] T032 [P] [US1] Create `web/src/components/CameraSelector.tsx`:
+- [X] T032 [P] [US1] Create `web/src/components/CameraSelector.tsx`:
   - Dropdown/list of cameras from useCameras
   - Display camera name and type badge (builtin/usb)
   - "No cameras available" empty state
   - onSelect(camera) callback
-- [ ] T033 [P] [US1] Create `web/src/components/Dashboard.tsx`:
+- [X] T033 [P] [US1] Create `web/src/components/Dashboard.tsx`:
   - Main layout with header "HLS Camera Streaming"
   - Render CameraSelector
   - Manage selectedCamera state
@@ -174,7 +174,7 @@
 
 ### Backend (US2)
 
-- [ ] T034 [US2] Create `server/src/lib/stream/streamManager.ts`:
+- [X] T034 [US2] Create `server/src/lib/stream/streamManager.ts`:
   - `startStream(cameraId, options)`: Orchestrate full stream startup
     - Validate camera available
     - Reserve camera
@@ -184,33 +184,33 @@
     - Wait for first segment → update to 'active'
     - Return Stream object
   - `stopStream(streamId)`: Kill FFmpeg, release camera, cleanup
-- [ ] T035 [US2] Create `server/src/routes/streams.ts`:
+- [X] T035 [US2] Create `server/src/routes/streams.ts`:
   - POST /streams: Start new stream (cameraId, bitrate?, resolution?, frameRate?)
   - GET /streams: List all active streams
   - GET /streams/:id: Get single stream details
   - DELETE /streams/:id: Stop stream
   - Error responses per contracts/api.md (409, 400, 404, 500)
-- [ ] T036 [P] [US2] Register streams route in `server/src/index.ts`
+- [X] T036 [P] [US2] Register streams route in `server/src/index.ts`
 
 ### Frontend (US2)
 
-- [ ] T037 [P] [US2] Add to `web/src/lib/api.ts`:
+- [X] T037 [P] [US2] Add to `web/src/lib/api.ts`:
   - `startStream(cameraId, options?): Promise<Stream>`
   - `getStreams(): Promise<Stream[]>`
   - `getStream(id): Promise<Stream>`
   - `stopStream(id): Promise<void>`
-- [ ] T038 [P] [US2] Create `web/src/hooks/useStreams.ts`:
+- [X] T038 [P] [US2] Create `web/src/hooks/useStreams.ts`:
   - React Query mutations for start/stop
   - Query for stream list with 2s polling
   - Optimistic updates
-- [ ] T039 [P] [US2] Create `web/src/components/StreamStatusBadge.tsx`:
+- [X] T039 [P] [US2] Create `web/src/components/StreamStatusBadge.tsx`:
   - Color-coded badge: starting(yellow), active(green), stopping(orange), error(red)
-- [ ] T040 [P] [US2] Create `web/src/components/StreamControls.tsx`:
+- [X] T040 [P] [US2] Create `web/src/components/StreamControls.tsx`:
   - "Start Streaming" button (disabled if no camera selected)
   - Loading spinner during startup
   - Display HLS URL with copy button when active
   - Uses selectedCamera from Dashboard
-- [ ] T041 [P] [US2] Update `web/src/components/Dashboard.tsx`:
+- [X] T041 [P] [US2] Update `web/src/components/Dashboard.tsx`:
   - Add StreamControls below CameraSelector
   - Pass selectedCamera and handle stream state
 
@@ -228,11 +228,11 @@
 
 ### Frontend (US3)
 
-- [ ] T042 [P] [US3] Add to `web/src/components/StreamControls.tsx`:
+- [X] T042 [P] [US3] Add to `web/src/components/StreamControls.tsx`:
   - "Stop Streaming" button when stream active
   - Confirmation dialog before stopping
   - Loading state during shutdown
-- [ ] T043 [P] [US3] Create `web/src/components/ui/ConfirmDialog.tsx`:
+- [X] T043 [P] [US3] Create `web/src/components/ui/ConfirmDialog.tsx`:
   - Reusable confirmation modal
   - Title, message, confirm/cancel buttons
 
@@ -250,16 +250,16 @@
 
 ### Frontend (US4)
 
-- [ ] T044 [P] [US4] Create `web/src/components/StreamList.tsx`:
+- [X] T044 [P] [US4] Create `web/src/components/StreamList.tsx`:
   - Table/grid of active streams
   - Columns: Camera, Status, HLS URL, Uptime, Actions
   - Auto-refresh via useStreams hook (2s polling)
   - Empty state: "No active streams"
-- [ ] T045 [P] [US4] Create `web/src/components/StreamListItem.tsx`:
+- [X] T045 [P] [US4] Create `web/src/components/StreamListItem.tsx`:
   - Single stream row with metadata
   - Copy URL button, Stop button, Play button
   - Format uptime as HH:MM:SS
-- [ ] T046 [P] [US4] Update `web/src/components/Dashboard.tsx`:
+- [X] T046 [P] [US4] Update `web/src/components/Dashboard.tsx`:
   - Add StreamList section below controls
 
 **Checkpoint**: Users see all active streams in real-time - **US1-4 COMPLETE**
@@ -276,7 +276,7 @@
 
 ### Backend (US5)
 
-- [ ] T047 [US5] Create `server/src/routes/hls.ts`:
+- [X] T047 [US5] Create `server/src/routes/hls.ts`:
   - GET /hls/:streamId/manifest.m3u8: Serve m3u8 content
     - Content-Type: application/vnd.apple.mpegurl
     - Cache-Control: no-cache
@@ -284,25 +284,25 @@
     - Content-Type: video/mp2t
     - Support Range requests
     - Cache-Control: public, max-age=31536000
-- [ ] T048 [P] [US5] Register HLS route in `server/src/index.ts`
+- [X] T048 [P] [US5] Register HLS route in `server/src/index.ts`
 
 ### Frontend (US5)
 
-- [ ] T049 [P] [US5] Create `web/src/hooks/useHLSPlayer.ts`:
+- [X] T049 [P] [US5] Create `web/src/hooks/useHLSPlayer.ts`:
   - Initialize hls.js with video element ref
   - Handle MANIFEST_PARSED, ERROR events
   - Auto-play when ready
   - Cleanup on unmount
-- [ ] T050 [P] [US5] Create `web/src/components/StreamPlayer.tsx`:
+- [X] T050 [P] [US5] Create `web/src/components/StreamPlayer.tsx`:
   - HTML5 video element
   - Use hls.js for HLS playback
   - Native controls (play/pause/volume)
   - Error overlay for playback issues
-- [ ] T051 [P] [US5] Create `web/src/components/StreamPlayerModal.tsx`:
+- [X] T051 [P] [US5] Create `web/src/components/StreamPlayerModal.tsx`:
   - Modal wrapper for full-size player
   - Close button (ESC key)
   - Stream info overlay (camera name, uptime)
-- [ ] T052 [P] [US5] Add Play button to `web/src/components/StreamListItem.tsx`:
+- [X] T052 [P] [US5] Add Play button to `web/src/components/StreamListItem.tsx`:
   - Opens StreamPlayerModal with stream URL
 
 **Checkpoint**: Users can click Play and watch video - **US1-5 COMPLETE (MVP)**
@@ -319,15 +319,15 @@
 
 ### Frontend (US6)
 
-- [ ] T053 [P] [US6] Enhance `web/src/components/StreamPlayer.tsx`:
+- [X] T053 [P] [US6] Enhance `web/src/components/StreamPlayer.tsx`:
   - Progress bar showing current position in DVR window
   - Time display: current / available duration
   - Click-to-seek functionality
-- [ ] T054 [P] [US6] Enhance `web/src/hooks/useHLSPlayer.ts`:
+- [X] T054 [P] [US6] Enhance `web/src/hooks/useHLSPlayer.ts`:
   - Track current time and DVR range
   - `seekTo(seconds)`: Validate and seek within buffer
   - Handle seek beyond available segments
-- [ ] T055 [P] [US6] Add playback speed control to StreamPlayer:
+- [X] T055 [P] [US6] Add playback speed control to StreamPlayer:
   - Dropdown: 0.5x, 1x, 1.5x, 2x
   - Update video.playbackRate
 
@@ -345,18 +345,18 @@
 
 ### Frontend (US7)
 
-- [ ] T056 [P] [US7] Create `web/src/components/StreamDetailsModal.tsx`:
+- [X] T056 [P] [US7] Create `web/src/components/StreamDetailsModal.tsx`:
   - Display: Stream ID, Camera Name, Status, Start Time, Uptime
   - Resolution, Bitrate, Frame Rate, Segment Count
   - HLS URL with copy button
-- [ ] T057 [P] [US7] Create `web/src/components/CopyableField.tsx`:
+- [X] T057 [P] [US7] Create `web/src/components/CopyableField.tsx`:
   - Read-only text input with copy icon
   - Toast on successful copy
-- [ ] T058 [P] [US7] Create `web/src/lib/formatters.ts`:
+- [X] T058 [P] [US7] Create `web/src/lib/formatters.ts`:
   - `formatUptime(seconds)`: → "01:23:45"
   - `formatBytes(bytes)`: → "125.5 MB"
   - `formatTimestamp(iso)`: → "Jan 29, 10:30 AM"
-- [ ] T059 [P] [US7] Add "Details" button to `web/src/components/StreamListItem.tsx`:
+- [X] T059 [P] [US7] Add "Details" button to `web/src/components/StreamListItem.tsx`:
   - Opens StreamDetailsModal
 
 **Checkpoint**: Users can view comprehensive stream info - **US1-7 COMPLETE**
@@ -371,44 +371,44 @@
 
 ### Error Handling
 
-- [ ] T060 Enhance `server/src/lib/stream/streamManager.ts`:
+- [X] T060 Enhance `server/src/lib/stream/streamManager.ts`:
   - Monitor FFmpeg stderr for errors
   - Detect camera disconnect within 5 seconds (FR-015)
   - Update stream status to 'error' with message
   - Auto-cleanup on failure
-- [ ] T061 [P] Add parameter validation in `server/src/routes/streams.ts`:
+- [X] T061 [P] Add parameter validation in `server/src/routes/streams.ts`:
   - Bitrate: 500-8000 kbps
   - FrameRate: 1-60 fps
   - Return 400 with detailed error message
-- [ ] T062 [P] Add disk space check before starting stream:
+- [X] T062 [P] Add disk space check before starting stream:
   - Warn if < 500MB available
   - Return 507 Insufficient Storage
 
 ### UI Polish
 
-- [ ] T063 [P] Create `web/src/components/ui/Toast.tsx`:
+- [X] T063 [P] Create `web/src/components/ui/Toast.tsx`:
   - Toast notification system
   - Success (green), Error (red), Info (blue) variants
-- [ ] T064 [P] Create `web/src/components/ui/Spinner.tsx`:
+- [X] T064 [P] Create `web/src/components/ui/Spinner.tsx`:
   - Reusable loading spinner
-- [ ] T065 [P] Add loading states across all components:
+- [X] T065 [P] Add loading states across all components:
   - Camera list loading
   - Stream starting/stopping
   - Player loading
-- [ ] T066 [P] Add responsive design in `web/src/index.css`:
+- [X] T066 [P] Add responsive design in `web/src/index.css`:
   - Mobile-friendly layout
   - Touch-friendly buttons
 
 ### Health & Monitoring
 
-- [ ] T067 [P] Enhance `server/src/routes/health.ts`:
+- [X] T067 [P] Enhance `server/src/routes/health.ts`:
   - Check FFmpeg availability
   - Report active stream count
   - Report disk usage for HLS directory
 
 ### Stability
 
-- [ ] T068 [P] Add graceful shutdown to `server/src/index.ts`:
+- [X] T068 [P] Add graceful shutdown to `server/src/index.ts`:
   - Handle SIGTERM/SIGINT
   - Stop all active streams cleanly
   - Wait for FFmpeg processes to exit
@@ -423,16 +423,16 @@
 
 **Duration**: 1-2 hours
 
-- [ ] T069 [P] Add JSDoc comments to all public functions in server/src/
-- [ ] T070 [P] Update root `README.md` with:
+- [X] T069 [P] Add JSDoc comments to all public functions in server/src/
+- [X] T070 [P] Update root `README.md` with:
   - Prerequisites (Node.js, FFmpeg)
   - Setup instructions
   - API documentation summary
   - Troubleshooting guide
-- [ ] T071 [P] Document environment variables in `server/.env.example`
-- [ ] T072 Create `server/Dockerfile` for backend container
-- [ ] T073 [P] Create `web/Dockerfile` for frontend container
-- [ ] T074 [P] Create root `docker-compose.yml` for full stack
+- [X] T071 [P] Document environment variables in `server/.env.example`
+- [X] T072 Create `server/Dockerfile` for backend container
+- [X] T073 [P] Create `web/Dockerfile` for frontend container
+- [X] T074 [P] Create root `docker-compose.yml` for full stack
 
 **Checkpoint**: Documented and deployable application
 
